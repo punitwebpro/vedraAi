@@ -41,7 +41,7 @@ class LoginScreen extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Text(
+            Text(
               'VEDRA',
               style: TextStyle(
                 fontSize: 48,
