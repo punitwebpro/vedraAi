@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "847958872910",
+    "project_id": "vedra-70f58",
+    "storage_bucket": "vedra-70f58.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:847958872910:android:86f9117e6431524185c41f",
+        "android_client_info": {
+          "package_name": "com.example.vedra_ai"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDvgIBSpi1I3T6xJHO6_Or0GcahME35bQk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
