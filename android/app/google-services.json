@@ -12,7 +12,20 @@
           "package_name": "com.example.vedra_ai"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "847958872910-qivsshkf4ua036evv2qbpkt1pbfucp6p.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.vedra_ai",
+            "certificate_hash": "13e3faa21ff46dd27407f5404bd0e6ad6b6d369e"
+          }
+        },
+        {
+          "client_id": "847958872910-ttjvdsrvco1b7qcq80udctgpbi5kqs7p.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyDvgIBSpi1I3T6xJHO6_Or0GcahME35bQk"
@@ -20,7 +33,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "847958872910-ttjvdsrvco1b7qcq80udctgpbi5kqs7p.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }
