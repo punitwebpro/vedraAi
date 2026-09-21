@@ -12,6 +12,8 @@ jobs:
         with:
           flutter-version: '3.47.1'
       - run: flutter clean
+      - run: cat lib/main.dart
+      - run: cat lib/main.dart | head -20
       - run: flutter pub get
       - run: flutter build apk --debug
       - uses: actions/upload-artifact@v4
