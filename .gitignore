@@ -46,3 +46,11 @@ app.*.map.json
 
 # Widget Preview related
 .widget_preview/
+
+*.log
+*.apk
+*.bak*
+all_files.txt
+sha1*.txt
+server/node_modules
+.env

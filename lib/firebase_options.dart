@@ -24,8 +24,8 @@ class DefaultFirebaseOptions {
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyBgcxY5DFzuNM4y_ljfU2fmTcGC5SQE-do',
-    appId: '1:847958872910:android:placeholder',
+    apiKey: 'AIzaSyDvgIBSpi1I3T6xJHO6_Or0GcahME35bQk',
+    appId: '1:847958872910:android:86f9117e6431524185c41f',
     messagingSenderId: '847958872910',
     projectId: 'vedra-70f58',
     storageBucket: 'vedra-70f58.firebasestorage.app',
