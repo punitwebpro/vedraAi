@@ -8,6 +8,7 @@ import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:speech_to_text/speech_to_text.dart';
+import '../../core/services/ai_service.dart';
 
 class VAttachment {
   final String name;
@@ -242,12 +243,21 @@ class _VedraChatScreenState extends State<VedraChatScreen> {
     _scrollDown();
 
     // TODO: yahan asli AI API call aayegi. Abhi demo jawab hai.
-    await Future.delayed(const Duration(milliseconds: 900));
+    String reply;
+    try {
+      reply = await askVedra([
+        for (final m in s.messages)
+          if (m.text.trim().isNotEmpty)
+            {'role': m.isUser ? 'user' : 'model', 'text': m.text},
+      ]);
+    } catch (_) {
+      reply = 'Jawab nahi mil paaya. Internet check karke dobara try karein.';
+    }
     if (!mounted) return;
     setState(() {
       _typing = false;
       s.messages.add(VChatMessage(
-        'Ye abhi demo jawab hai. Jab AI jod denge, yahan asli jawab aayega.',
+        reply,
         false,
       ));
       s.updatedAt = DateTime.now();
