@@ -61,6 +61,7 @@ app.post("/chat", auth, limiter, async (req, res) => {
       }
     );
     const data = await r.json();
+    if (!r.ok) console.error("GEMINI ERROR", r.status, data.error?.message);
     if (!r.ok) return res.status(502).json({ error: "AI error", detail: data.error?.message });
     const reply = (data.candidates?.[0]?.content?.parts || []).map((p) => p.text || "").join("");
     res.json({ reply: reply || "Maaf kijiye, abhi jawab nahi mil paaya." });
