@@ -250,8 +250,8 @@ class _VedraChatScreenState extends State<VedraChatScreen> {
           if (m.text.trim().isNotEmpty)
             {'role': m.isUser ? 'user' : 'model', 'text': m.text},
       ]);
-    } catch (_) {
-      reply = 'Jawab nahi mil paaya. Internet check karke dobara try karein.';
+    } catch (e) {
+      reply = 'Jawab nahi mil paaya.\n($e)';
     }
     if (!mounted) return;
     setState(() {
