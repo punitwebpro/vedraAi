@@ -35,37 +35,33 @@ app.get("/", (_, res) => res.send("Vedra server running"));
 
 app.post("/chat", auth, limiter, async (req, res) => {
   try {
-    const messages = (req.body.messages || []).slice(-20);
-    const contents = messages
-      .filter((m) => String(m.text || "").trim())
-      .map((m) => ({
-        role: m.role === "model" ? "model" : "user",
-        parts: [{ text: String(m.text).slice(0, 4000) }],
-      }));
-    while (contents.length && contents[0].role === "model") contents.shift();
-    if (!contents.length) return res.status(400).json({ error: "No message" });
-
-    const r = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-goog-api-key": process.env.GEMINI_API_KEY,
-        },
-        body: JSON.stringify({
-          systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
-          contents,
-          tools: [{ google_search: {} }],
-        }),
-      }
-    );
+    const msgs = Array.isArray(req.body?.messages) ? req.body.messages : [];
+    const messages = [{ role: "system", content: SYSTEM_PROMPT }];
+    for (const m of msgs.slice(-20)) {
+      const text = String(m?.text ?? "").slice(0, 4000);
+      if (!text) continue;
+      messages.push({ role: m.role === "model" ? "assistant" : "user", content: text });
+    }
+    const r = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: process.env.GROQ_MODEL || "llama-3.3-70b-versatile",
+        messages,
+      }),
+    });
     const data = await r.json();
-    if (!r.ok) console.error("GEMINI ERROR", r.status, data.error?.message);
-    if (!r.ok) return res.status(502).json({ error: "AI error", detail: data.error?.message });
-    const reply = (data.candidates?.[0]?.content?.parts || []).map((p) => p.text || "").join("");
+    if (!r.ok) {
+      console.error("GROQ ERROR", r.status, data.error?.message);
+      return res.status(502).json({ error: "AI error", detail: data.error?.message });
+    }
+    const reply = data.choices?.[0]?.message?.content || "";
     res.json({ reply: reply || "Maaf kijiye, abhi jawab nahi mil paaya." });
   } catch (e) {
+    console.error("CHAT ERROR", e);
     res.status(500).json({ error: "Server error" });
   }
 });
