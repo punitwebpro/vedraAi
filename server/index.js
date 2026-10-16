@@ -42,11 +42,12 @@ app.post("/chat", auth, limiter, async (req, res) => {
       if (!text) continue;
       messages.push({ role: m.role === "model" ? "assistant" : "user", content: text });
     }
+    const _k = process.env.GROQ_API_KEY || ""; console.log("KEYCHECK set:", !!_k, "len:", _k.length, "trimmedLen:", _k.trim().length, "starts:", _k.trim().slice(0, 4));
     const r = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
+        Authorization: `Bearer ${(process.env.GROQ_API_KEY || "").trim()}`,
       },
       body: JSON.stringify({
         model: process.env.GROQ_MODEL || "llama-3.3-70b-versatile",
