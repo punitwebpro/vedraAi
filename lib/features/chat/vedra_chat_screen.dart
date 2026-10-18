@@ -201,9 +201,16 @@ class _VedraChatScreenState extends State<VedraChatScreen> {
         _sessions
           ..clear()
           ..addAll(list);
-        _cur = VChatSession();
-        _sessions.insert(0, _cur);
-        if (list.every((x) => x.messages.isEmpty)) _isFirst = true;
+        list.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+        final last = list.firstWhere(
+          (s) => !s.archived && s.messages.isNotEmpty,
+          orElse: () => VChatSession(),
+        );
+        _cur = last;
+        if (!_sessions.any((s) => s.id == last.id)) {
+          _sessions.insert(0, last);
+        }
+        _isFirst = _cur.messages.isEmpty;
       });
     } catch (_) {}
   }
@@ -537,6 +544,7 @@ class _VedraChatScreenState extends State<VedraChatScreen> {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
         title: const Text('Vedra'),
         actions: [
@@ -563,7 +571,12 @@ class _VedraChatScreenState extends State<VedraChatScreen> {
                           padding: EdgeInsets.all(8),
                           child: Align(
                             alignment: Alignment.centerLeft,
-                            child: Text('Vedra soch raha hai...'),
+                            child: SizedBox(
+                              width: 120,
+                              child: LinearProgressIndicator(
+                                minHeight: 2,
+                              ),
+                            ),
                           ),
                         );
                       }
