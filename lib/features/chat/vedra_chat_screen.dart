@@ -592,12 +592,7 @@ class _VedraChatScreenState extends State<VedraChatScreen> {
 
   Widget _buildEmpty(ColorScheme cs) {
     final first = _name.split(' ').first;
-    const suggestions = [
-      'Ek shayari likho',
-      'Business idea do',
-      'Padhai mein madad karo',
-      'Ek chhoti kahani sunao',
-    ];
+
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -611,21 +606,7 @@ class _VedraChatScreenState extends State<VedraChatScreen> {
             const SizedBox(height: 8),
             Text(_isFirst ? 'Vedra mein aapka swagat hai' : _subtitle),
             const SizedBox(height: 20),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              alignment: WrapAlignment.center,
-              children: [
-                for (final s in suggestions)
-                  ActionChip(
-                    label: Text(s),
-                    onPressed: () {
-                      _controller.text = s;
-                      _send();
-                    },
-                  ),
-              ],
-            ),
+
           ],
         ),
       ),
@@ -633,16 +614,33 @@ class _VedraChatScreenState extends State<VedraChatScreen> {
   }
 
   Widget _bubble(VChatMessage m, ColorScheme cs) {
-    final bg = m.isUser ? cs.primaryContainer : cs.surfaceContainerHighest;
+    if (!m.isUser) {
+      return Align(
+        alignment: Alignment.centerLeft,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 6),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              for (final a in m.attachments) _attachmentView(a),
+              if (m.text.isNotEmpty)
+                Text(m.text, style: const TextStyle(height: 1.5)),
+            ],
+          ),
+        ),
+      );
+    }
+
     return Align(
-      alignment: m.isUser ? Alignment.centerRight : Alignment.centerLeft,
+      alignment: Alignment.centerRight,
       child: Container(
         margin: const EdgeInsets.symmetric(vertical: 4),
         padding: const EdgeInsets.all(12),
-        constraints:
-            BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.8),
+        constraints: BoxConstraints(
+          maxWidth: MediaQuery.of(context).size.width * 0.8,
+        ),
         decoration: BoxDecoration(
-          color: bg,
+          color: cs.primaryContainer,
           borderRadius: BorderRadius.circular(16),
         ),
         child: Column(
