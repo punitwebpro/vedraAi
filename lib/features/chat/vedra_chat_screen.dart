@@ -332,7 +332,7 @@ class _VedraChatScreenState extends State<VedraChatScreen> {
     showModalBottomSheet(
       context: context,
       builder: (ctx) {
-        Widget item(IconData icon, String label, String key) => ListTile(
+     Widget item(IconData icon, String label, String key) => ListTile(
               leading: Icon(icon),
               title: Text(label),
               onTap: () {
