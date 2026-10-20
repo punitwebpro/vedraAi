@@ -60,7 +60,7 @@ app.post("/chat", auth, limiter, async (req, res) => {
   try {
     const msgs = Array.isArray(req.body?.messages) ? req.body.messages : [];
 
-    const messages = [{ role: "system", content: SYSTEM_PROMPT + "\n\nRULES: Reply in simple Hinglish (Hindi in Roman letters) unless the user writes in another language. Explain step by step in short, clear sentences with everyday words and a small example when it helps. Explain one point at a time in numbered steps with a small example for each. Keep it under 10 lines unless the user asks for more. State only facts you are sure about. If unsure, say that you are not sure and do not guess. Never invent names, numbers, dates or sources. You cannot browse the internet, so for recent news, prices or live information say that your information may be old." + userNote(req.user) }];
+    const messages = [{ role: "system", content: SYSTEM_PROMPT + "\n\nRULES: Always reply in the same language and script as the user's latest message: English question -> English answer, Hindi in Devanagari -> Hindi in Devanagari, Hinglish (Hindi in Roman letters) -> simple Hinglish. Do not switch languages unless the user does. Explain step by step in short, clear sentences with everyday words and a small example when it helps. Explain one point at a time in numbered steps with a small example for each. Keep it under 10 lines unless the user asks for more. State only facts you are sure about. If unsure, say that you are not sure and do not guess. Never invent names, numbers, dates or sources. You cannot browse the internet, so for recent news, prices or live information say that your information may be old." + userNote(req.user) }];
 
     for (const m of msgs.slice(-10)) {
       const text = String(m?.text ?? "").slice(0, 4000);
@@ -72,47 +72,3 @@ app.post("/chat", auth, limiter, async (req, res) => {
       });
     }
 
-    const r = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${(process.env.GROQ_API_KEY || "").trim()}`,
-      },
-      body: JSON.stringify({
-        model: process.env.GROQ_MODEL || "llama-3.3-70b-versatile",
-        messages,
-        temperature: 0.7,
-        max_tokens: 1024,
-      }),
-    });
-
-    const data = await r.json();
-
-    if (!r.ok) {
-      console.error("GROQ ERROR", r.status, data.error?.message);
-      return res.status(502).json({
-        error: "AI error",
-        detail: data.error?.message,
-      });
-    }
-
-    const reply = data.choices?.[0]?.message?.content || "";
-
-    res.json({
-      reply: reply || "Maaf kijiye, abhi jawab nahi mil paaya.",
-    });
-  } catch (e) {
-    console.error("CHAT ERROR", e);
-    res.status(500).json({ error: "Server error" });
-  }
-});
-
-app.listen(process.env.PORT || 3000);
-
-function userNote(u) {
-  const raw = u.name || (u.email ? u.email.split("@")[0] : "");
-  const name = String(raw).replace(/[^\p{L}\p{N} ._-]/gu, "").trim().slice(0, 40);
-  return name
-    ? `\nThe user's name is ${name}. If they ask their name or who they are, tell them this name.`
-    : "";
-}
