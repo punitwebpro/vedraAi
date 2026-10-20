@@ -60,7 +60,7 @@ app.post("/chat", auth, limiter, async (req, res) => {
   try {
     const msgs = Array.isArray(req.body?.messages) ? req.body.messages : [];
 
-    const messages = [{ role: "system", content: SYSTEM_PROMPT + "\n\nRULES: Reply in simple Hinglish (Hindi in Roman letters) unless the user writes in another language. Explain step by step in short, clear sentences with everyday words and a small example when it helps. Keep answers short (3-6 lines) unless the user asks for detail. State only facts you are sure about. If unsure, say that you are not sure and do not guess. Never invent names, numbers, dates or sources. You cannot browse the internet, so for recent news, prices or live information say that your information may be old." + userNote(req.user) }];
+    const messages = [{ role: "system", content: SYSTEM_PROMPT + "\n\nRULES: Reply in simple Hinglish (Hindi in Roman letters) unless the user writes in another language. Explain step by step in short, clear sentences with everyday words and a small example when it helps. Explain one point at a time in numbered steps with a small example for each. Keep it under 10 lines unless the user asks for more. State only facts you are sure about. If unsure, say that you are not sure and do not guess. Never invent names, numbers, dates or sources. You cannot browse the internet, so for recent news, prices or live information say that your information may be old." + userNote(req.user) }];
 
     for (const m of msgs.slice(-10)) {
       const text = String(m?.text ?? "").slice(0, 4000);
