@@ -315,9 +315,9 @@ class _VedraChatScreenState extends State<VedraChatScreen> {
         if (x != null) _pending.add(VAttachment(x.name, x.path, 'image'));
       } else if (what == 'video') {
         final x = await _picker.pickVideo(source: ImageSource.gallery);
-        if (x != null) _pending.add(VAttachment(x.name, x.path, 'video'));
-      } else {
-        final f = await FilePicker.pickFile();
+                if (x != null) _pending.add(VAttachment(x.name, x.path, 'video'));
+                      } else {
+                              final f = await FilePicker.pickFile();
         if (f != null && f.path != null) {
           _pending.add(VAttachment(f.name, f.path!, 'file'));
         }
@@ -664,7 +664,7 @@ class _VedraChatScreenState extends State<VedraChatScreen> {
             File(a.path),
             height: 160,
             fit: BoxFit.cover,
-            errorBuilder: (_, __, ___) => Row(
+            errorBuilder: (context, error, stackTrace) => Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 const Icon(Icons.image_not_supported_outlined, size: 18),
