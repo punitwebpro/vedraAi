@@ -7,72 +7,58 @@ admin.initializeApp({
   credential: admin.credential.cert(JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT)),
 });
 
-const SYSTEM_PROMPT =
-  `You are Vedra, an intelligent AI assistant. Give answers like a helpful expert: first give a direct answer in 1-2 sentences, then explain with short, clear points or numbered steps. Be accurate, practical and easy to understand. If the question needs current facts, say clearly when you are unsure instead of guessing. Keep replies concise unless the user asks for detail. Reply in the same language the user uses.` +
-  
-  `IMPORTANT: Reply in plain text only. Do not use Markdown. Never use **, *, #, ##, ###, backticks, or other formatting symbols. Use short paragraphs and simple numbered lines like 1. 2. 3. when needed.` +
-   `You are Vedra, a helpful, professional and emotionally intelligent AI companion.
-
-MOST IMPORTANT RULE:
-Always understand the user's LATEST question and answer THAT question directly.
-Do not give unrelated answers. Do not change the topic.
-If the question is unclear, ask one short clarifying question.
-
-Answer style:
-- Use simple, easy language.
-- Use short sentences and bullet points when helpful.
-- Explain step by step.
-- Give practical, real-world advice.
-- Reply in the user's language: Hindi, Hinglish or English.
-
-You can help with: studies, career, business, coding, money-making ideas, health information, daily life, motivation, relationships, feelings and personal problems.
-Be warm, respectful and supportive—like a trusted friend, but professional.
-
-For coding, give correct working code with a short simple explanation.
-For study, explain step by step in easy language.
-For business or earning, give practical realistic advice and mention risks honestly.
-For creative requests like shayari, stories or status, be creative and natural.
-
-If you are not sure about a fact, say so clearly instead of guessing.
-Never invent facts, numbers, names or sources.
-You are not a licensed doctor, lawyer, or financial advisor. For medical, legal or financial topics, give general information and advise consulting a qualified professional.
-If the user mentions self-harm, suicide, or immediate danger, respond with care, encourage them to talk to a trusted person, and share local emergency help guidance.`;
+const SYSTEM_PROMPT = `You are Vedra, an intelligent AI assistant.
+STRICT RULE: Reply in plain text only. Never use Markdown symbols such as **, *, #, ##, ###, or backticks.
+First give a direct answer in 1-2 sentences. Then give short, clear numbered steps like 1. 2. 3.
+Be accurate, practical and easy to understand. Reply in the same language the user uses.`;
 
 const app = express();
 app.use(cors());
 app.use(express.json({ limit: "1mb" }));
+app.use(rateLimit({ windowMs: 60000, max: 30 }));
 
-async function auth(req, res, next) {
-  try {
-    const token = (req.headers.authorization || "").replace("Bearer ", "");
-    req.user = await admin.auth().verifyIdToken(token);
-    next();
-  } catch {
-    res.status(401).json({ error: "Login required" });
-  }
+function getUserName(user) {
+  const raw = user?.displayName || (user?.email ? user.email.split("@")[0] : "");
+  return String(raw).replace(/[^\p{L}\p{N} ._-]/gu, "").trim().slice(0, 40);
 }
 
-const limiter = rateLimit({
-  windowMs: 60 * 1000,
-  max: 12,
-  keyGenerator: (req) => req.user.uid,
+app.post("/chat", async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization || "";
+    const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
+    if (!token) return res.status(401).json({ error: "Unauthorized" });
+
+    const decoded = await admin.auth().verifyIdToken(token);
+    const name = getUserName(decoded);
+    const messages = Array.isArray(req.body?.messages) ? req.body.messages : [];
+    if (!messages.length) return res.status(400).json({ error: "Messages required" });
+
+    const contents = [
+      { role: "user", parts: [{ text: SYSTEM_PROMPT + (name ? `\nThe user's name is ${name}.` : "") }] },
+      ...messages.slice(-10).map((m) => ({
+        role: m.role === "assistant" ? "model" : "user",
+        parts: [{ text: String(m.content || "").slice(0, 8000) }],
+      })),
+    ];
+
+    const r = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ contents, generationConfig: { temperature: 0.7, maxOutputTokens: 1024 } }),
+      }
+    );
+
+    if (!r.ok) throw new Error(`Gemini ${r.status}`);
+    const data = await r.json();
+    const reply = data.candidates?.[0]?.content?.parts?.map((p) => p.text || "").join("").trim() || "";
+
+    res.json({ reply: reply || "Maaf kijiye, abhi jawab nahi mil paaya." });
+  } catch (e) {
+    console.error("CHAT ERROR", e.message);
+    res.status(502).json({ error: "AI error", detail: e.message });
+  }
 });
 
-app.get("/", (_, res) => res.send("Vedra server running"));
-
-app.post("/chat", auth, limiter, async (req, res) => {
-  try {
-    const msgs = Array.isArray(req.body?.messages) ? req.body.messages : [];
-
-    const messages = [{ role: "system", content: SYSTEM_PROMPT + "\n\nRULES: Always reply in the same language and script as the user's latest message: English question -> English answer, Hindi in Devanagari -> Hindi in Devanagari, Hinglish (Hindi in Roman letters) -> simple Hinglish. Do not switch languages unless the user does. Explain step by step in short, clear sentences with everyday words and a small example when it helps. Explain one point at a time in numbered steps with a small example for each. Keep it under 10 lines unless the user asks for more. State only facts you are sure about. If unsure, say that you are not sure and do not guess. Never invent names, numbers, dates or sources. You cannot browse the internet, so for recent news, prices or live information say that your information may be old." + userNote(req.user) }];
-
-    for (const m of msgs.slice(-10)) {
-      const text = String(m?.text ?? "").slice(0, 4000);
-      if (!text) continue;
-
-      messages.push({
-        role: m.role === "model" ? "assistant" : "user",
-        content: text,
-      });
-    }
-
+app.listen(process.env.PORT || 3000, () => console.log("Vedra server running"));
