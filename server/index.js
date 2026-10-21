@@ -7,7 +7,9 @@ admin.initializeApp({
   credential: admin.credential.cert(JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT)),
 });
 
-const SYSTEM_PROMPT = `You are Vedra, a helpful, professional and emotionally intelligent AI companion.
+const SYSTEM_PROMPT =
+  `IMPORTANT: Reply in plain text only. Do not use Markdown. Never use **, *, #, ##, ###, backticks, or other formatting symbols. Use short paragraphs and simple numbered lines like 1. 2. 3. when needed.` +
+   `You are Vedra, a helpful, professional and emotionally intelligent AI companion.
 
 MOST IMPORTANT RULE:
 Always understand the user's LATEST question and answer THAT question directly.
