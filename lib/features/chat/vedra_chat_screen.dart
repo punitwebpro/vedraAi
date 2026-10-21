@@ -8,6 +8,7 @@ import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:speech_to_text/speech_to_text.dart';
+import 'sparkle_loader.dart';
 import '../../core/services/ai_service.dart';
 
 class VAttachment {
@@ -540,13 +541,56 @@ class _VedraChatScreenState extends State<VedraChatScreen> {
     );
   }
 
+  static const _ink = Color(0xFF111111);
+  static const _inkSoft = Color(0x99111111);
+
+  ThemeData _lightTheme() {
+    final base = ThemeData(
+      useMaterial3: true,
+      brightness: Brightness.light,
+      colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF6C4DF6)),
+    );
+    return base.copyWith(
+      scaffoldBackgroundColor: Colors.white,
+      textTheme: base.textTheme.apply(bodyColor: _ink, displayColor: _ink),
+      appBarTheme: const AppBarTheme(
+        backgroundColor: Colors.white,
+        foregroundColor: _ink,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    return Theme(
+      data: _lightTheme(),
+      child: Builder(builder: _buildScaffold),
+    );
+  }
+
+  Widget _buildScaffold(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text('Vedra'),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Vedra',
+              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 20),
+            ),
+            if (_cur.messages.isNotEmpty)
+              Text(
+                _cur.title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontSize: 12, color: _inkSoft),
+              ),
+          ],
+        ),
         actions: [
           IconButton(
             tooltip: 'New chat',
@@ -571,12 +615,7 @@ class _VedraChatScreenState extends State<VedraChatScreen> {
                           padding: EdgeInsets.all(8),
                           child: Align(
                             alignment: Alignment.centerLeft,
-                            child: SizedBox(
-                              width: 120,
-                              child: LinearProgressIndicator(
-                                minHeight: 2,
-                              ),
-                            ),
+                            child: SparkleLoader(),
                           ),
                         );
                       }
@@ -602,7 +641,7 @@ class _VedraChatScreenState extends State<VedraChatScreen> {
             Icon(Icons.auto_awesome, size: 44, color: cs.primary),
             const SizedBox(height: 16),
             Text(_isFirst ? 'Welcome, $first!' : '$_greeting, $first',
-                style: Theme.of(context).textTheme.headlineSmall),
+                style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w700, color: _ink)),
             const SizedBox(height: 8),
             Text(_isFirst ? 'Vedra mein aapka swagat hai' : _subtitle),
             const SizedBox(height: 20),
@@ -624,7 +663,7 @@ class _VedraChatScreenState extends State<VedraChatScreen> {
             children: [
               for (final a in m.attachments) _attachmentView(a),
               if (m.text.isNotEmpty)
-                Text(m.text, style: const TextStyle(height: 1.5)),
+                SelectableText(m.text, style: const TextStyle(height: 1.55, fontSize: 15.5, color: _ink)),
             ],
           ),
         ),
@@ -817,7 +856,7 @@ class _VedraChatScreenState extends State<VedraChatScreen> {
           if (groups.containsKey(g)) ...[
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-              child: Text(g, style: Theme.of(context).textTheme.labelMedium),
+              child: Text(g, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: _inkSoft)),
             ),
             for (final s in groups[g]!) _chatTile(s),
           ],
