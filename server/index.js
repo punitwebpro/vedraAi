@@ -40,9 +40,10 @@ app.post("/chat", async (req, res) => {
         parts: [{ text: String(m.content || "").slice(0, 8000) }],
       })),
     ];
-
+       
     const r = await fetch(
-      
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${process.env.GEMINI_API_KEY}`,
+      {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ contents, generationConfig: { temperature: 0.7, maxOutputTokens: 1024 } }),
