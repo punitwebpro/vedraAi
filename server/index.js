@@ -7,7 +7,7 @@ admin.initializeApp({
   credential: admin.credential.cert(JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT)),
 });
 
-const MODEL = "gemini-flash-latest";
+const MODEL = "openrouter/free";
 
 const SYSTEM_PROMPT = `You are Vedra, an intelligent AI assistant.
 STRICT RULE: Reply in plain text only. Never use Markdown symbols such as **, *, #, ##, ###, or backticks.
@@ -29,18 +29,35 @@ function getUserName(u) {
   return String(raw).replace(/[^\p{L}\p{N} ._-]/gu, "").trim().slice(0, 40);
 }
 
-function callGemini(body) {
-  return fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-goog-api-key": process.env.GEMINI_API_KEY,
-      },
-      body: JSON.stringify(body),
-    }
-  );
+async function callOpenRouter(messages, note) {
+  const key = process.env.OPENROUTER_API_KEY;
+  if (!key) throw new Error("OPENROUTER_API_KEY missing");
+
+  const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${key}`,
+      "Content-Type": "application/json",
+      "HTTP-Referer": "https://vedraai.onrender.com",
+      "X-OpenRouter-Title": "Vedra AI",
+    },
+    body: JSON.stringify({
+      model: MODEL,
+      messages: [
+        { role: "system", content: SYSTEM_PROMPT + note },
+        ...messages,
+      ],
+      temperature: 0.5,
+      max_tokens: 1024,
+    }),
+  });
+
+  const data = await res.json();
+  if (!res.ok) {
+    console.error("OPENROUTER ERROR", res.status, JSON.stringify(data.error || data).slice(0, 500));
+    throw new Error(data?.error?.message || `OpenRouter ${res.status}`);
+  }
+  return data.choices?.[0]?.message?.content || "";
 }
 
 app.post("/chat", async (req, res) => {
@@ -53,41 +70,22 @@ app.post("/chat", async (req, res) => {
     const name = getUserName(decoded);
 
     const messages = Array.isArray(req.body?.messages) ? req.body.messages : [];
-    const contents = messages
+    const chat = messages
       .slice(-12)
       .map((m) => ({
-        role: m.role === "model" || m.role === "assistant" ? "model" : "user",
-        parts: [{ text: String(m.text ?? m.content ?? "").slice(0, 8000) }],
+        role: m.role === "model" || m.role === "assistant" ? "assistant" : "user",
+        content: String(m.text ?? m.content ?? "").slice(0, 8000),
       }))
-      .filter((c) => c.parts[0].text.trim());
-    while (contents.length && contents[0].role === "model") contents.shift();
-    if (!contents.length) return res.status(400).json({ error: "Messages required" });
+      .filter((m) => m.content.trim());
+    while (chat.length && chat[0].role === "assistant") chat.shift();
+    if (!chat.length) return res.status(400).json({ error: "Messages required" });
 
     const note = name
       ? `\nThe user's name is ${name}. If they ask their name or who they are, tell them this name.`
       : "";
-    const base = {
-      systemInstruction: { parts: [{ text: SYSTEM_PROMPT + note }] },
-      contents,
-      generationConfig: { temperature: 0.5, maxOutputTokens: 1024 },
-    };
 
-    let r = await callGemini({ ...base, tools: [{ google_search: {} }] });
-    if (!r.ok) {
-      console.error("Gemini with search failed", r.status);
-      r = await callGemini(base);
-    }
-    const data = await r.json();
-    if (!r.ok) {
-      console.error("GEMINI ERROR", r.status, JSON.stringify(data.error || data).slice(0, 500));
-      return res.status(502).json({ error: "AI error", detail: `Gemini ${r.status}` });
-    }
-
-    const reply = (data.candidates?.[0]?.content?.parts || [])
-      .map((p) => p.text || "")
-      .join("")
-      .trim();
-    res.json({ reply: reply || "Maaf kijiye, abhi jawab nahi mil paaya." });
+    const reply = await callOpenRouter(chat, note);
+    res.json({ reply: reply.trim() || "Maaf kijiye, abhi jawab nahi mil paaya." });
   } catch (e) {
     console.error("CHAT ERROR", e.message);
     res.status(502).json({ error: "AI error", detail: e.message });
