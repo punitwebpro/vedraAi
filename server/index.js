@@ -40,9 +40,11 @@ async function tavilySearch(query) {
 
   const res = await fetch("https://api.tavily.com/search", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${key}`,
+    },
     body: JSON.stringify({
-      api_key: key,
       query: query.slice(0, 400),
       search_depth: "basic",
       max_results: 5,
@@ -50,7 +52,11 @@ async function tavilySearch(query) {
     }),
   });
 
-  if (!res.ok) return [];
+  if (!res.ok) {
+    console.error("TAVILY ERROR", res.status, await res.text().catch(() => ""));
+    return [];
+  }
+
   const data = await res.json();
   return (data.results || []).map((r) => ({
     title: r.title || "",
