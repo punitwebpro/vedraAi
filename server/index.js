@@ -49,7 +49,7 @@ async function coinGeckoPrice() {
       change24h: btc.usd_24h_change,
     };
   } catch (e) {
-    console.error("COINGECKO ERROR", e.message);
+   console.error("COINGECKO ERROR", e.message);
     return null;
   }
 }
@@ -140,8 +140,7 @@ app.post("/chat", async (req, res) => {
   const price = await coinGeckoPrice();
   if (price) {
     context +=
-      `\n\nLive CoinGecko data: Bitcoin price is $${price.usd} USD (₹${price.inr} INR). ` +
-      `24-hour change: ${price.change24h}%. Use this as the current price.`;
+            `\n\nLive CoinGecko data (use this exact price in your answer): Bitcoin = $${price.usd} USD = ₹${price.inr} INR. 24-hour change: ${price.change24h}%. Always state these exact figures first when asked about Bitcoin price.`;
   }
 }
     if (needsSearch(lastUser)) {
