@@ -134,7 +134,7 @@ app.post("/chat", async (req, res) => {
   }
 });
 
-app.listen(process.env.PORT || 3000, () => console.log("Vedra server running")); from "express";
+app.listen(process.env.PORT || 3000, () => console.log("Vedra server running"));
 import cors from "cors";
 import admin from "firebase-admin";
 import rateLimit from "express-rate-limit";
