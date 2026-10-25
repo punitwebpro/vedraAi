@@ -169,4 +169,11 @@ app.post("/chat", async (req, res) => {
       ...chat,
     ]);
 
-    res.json({ reply: reply.trim() || "Maaf kijiye, abhi jawab nahi mil paaya." });
+        res.json({ reply: reply.trim() || "Maaf kijiye, abhi jawab nahi mil paaya." });
+  } catch (e) {
+    console.error("CHAT ERROR", e.message);
+    res.status(502).json({ error: "AI error", detail: e.message });
+  }
+});
+
+app.listen(process.env.PORT || 3000, () => console.log("Vedra server running"));
