@@ -34,7 +34,25 @@ function getUserName(u) {
 function needsSearch(text) {
   return /(aaj|today|latest|current|news|price|rate|weather|mausam|score|match|who is|kaun|kab|kahan|2024|2025|2026|bitcoin|stock|election|release|update)/i.test(text);
 }
-
+async function coinGeckoPrice() {
+  try {
+    const res = await fetch(
+      "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd,inr&include_24hr_change=true"
+    );
+    if (!res.ok) return null;
+    const data = await res.json();
+    const btc = data.bitcoin;
+    if (!btc) return null;
+    return {
+      usd: btc.usd,
+      inr: btc.inr,
+      change24h: btc.usd_24h_change,
+    };
+  } catch (e) {
+    console.error("COINGECKO ERROR", e.message);
+    return null;
+  }
+}
 async function tavilySearch(query) {
   const key = process.env.TAVILY_API_KEY;
   if (!key) return [];
@@ -118,6 +136,14 @@ app.post("/chat", async (req, res) => {
       : "";
 
     let context = "";
+    if (/bitcoin|btc/i.test(lastUser)) {
+  const price = await coinGeckoPrice();
+  if (price) {
+    context +=
+      `\n\nLive CoinGecko data: Bitcoin price is $${price.usd} USD (₹${price.inr} INR). ` +
+      `24-hour change: ${price.change24h}%. Use this as the current price.`;
+  }
+}
     if (needsSearch(lastUser)) {
       const results = await tavilySearch(lastUser);
       if (results.length) {
