@@ -9,6 +9,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 import 'sparkle_loader.dart';
+import 'vedra_answer.dart';
 import '../../core/services/ai_service.dart';
 
 class VAttachment {
@@ -652,7 +653,7 @@ class _VedraChatScreenState extends State<VedraChatScreen> {
     );
   }
 
-  Widget _bubble(VChatMessage m, ColorScheme cs) {
+    Widget _bubble(VChatMessage m, ColorScheme cs) {
     if (!m.isUser) {
       return Align(
         alignment: Alignment.centerLeft,
@@ -663,7 +664,7 @@ class _VedraChatScreenState extends State<VedraChatScreen> {
             children: [
               for (final a in m.attachments) _attachmentView(a),
               if (m.text.isNotEmpty)
-                SelectableText(m.text, style: const TextStyle(height: 1.55, fontSize: 15.5, color: _ink)),
+                VedraAnswer(text: m.text),
             ],
           ),
         ),
