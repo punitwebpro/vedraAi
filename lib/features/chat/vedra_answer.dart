@@ -1,15 +1,18 @@
 import 'package:flutter/material.dart';
 
 const Color _ink = Color(0xFF111111);
-const Color _body = Color(0xFF3B3B3B);
+const Color _body = Color(0xFF5F6368);
 const Color _soft = Color(0xFF777777);
 const Color _line = Color(0xFFE3E3E3);
+const Color _panel = Color(0xFFF6F6F6);
 
 class _Parsed {
   String title = '';
   String summary = '';
   String example = '';
   String note = '';
+  String diagram = '';
+  String chart = '';
   final List<List<String>> steps = [];
   final List<String> extra = [];
 }
@@ -23,7 +26,7 @@ String _clean(String s) => s
 _Parsed? _parse(String text) {
   final p = _Parsed();
   final re = RegExp(
-    r'^(TITLE|SUMMARY|STEP|EXAMPLE|NOTE)\s*:\s*(.*)$',
+    r'^(TITLE|SUMMARY|STEP|EXAMPLE|NOTE|DIAGRAM|CHART)\s*:\s*(.*)$',
     caseSensitive: false,
   );
   for (final raw in text.split('\n')) {
@@ -45,6 +48,10 @@ _Parsed? _parse(String text) {
         p.example = val;
       case 'NOTE':
         p.note = val;
+      case 'DIAGRAM':
+        p.diagram = val;
+      case 'CHART':
+        p.chart = val;
       case 'STEP':
         final i = val.indexOf('|');
         if (i == -1) {
@@ -76,7 +83,7 @@ class VedraAnswer extends StatelessWidget {
       kids.add(SelectableText(
         p.title,
         style: const TextStyle(
-          fontSize: 24,
+          fontSize: 26,
           height: 1.25,
           fontWeight: FontWeight.w800,
           color: _ink,
@@ -90,6 +97,8 @@ class VedraAnswer extends StatelessWidget {
         style: const TextStyle(fontSize: 14.5, height: 1.65, color: _body),
       ));
     }
+    if (p.diagram.isNotEmpty) kids.add(_DiagramView(data: p.diagram));
+    if (p.chart.isNotEmpty) kids.add(_ChartView(data: p.chart));
     if (p.steps.isNotEmpty) kids.add(const SizedBox(height: 18));
     for (var i = 0; i < p.steps.length; i++) {
       if (i > 0) kids.add(const _Arrow());
@@ -117,6 +126,156 @@ class VedraAnswer extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: kids,
+    );
+  }
+}
+
+class _DiagramView extends StatelessWidget {
+  final String data;
+  const _DiagramView({required this.data});
+
+  @override
+  Widget build(BuildContext context) {
+    final parts = data
+        .split('->')
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toList();
+    if (parts.length < 2) return const SizedBox.shrink();
+    final kids = <Widget>[];
+    for (var i = 0; i < parts.length; i++) {
+      kids.add(Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: _panel,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: _line),
+        ),
+        child: Text(
+          parts[i],
+          style: const TextStyle(
+            fontSize: 13.5,
+            fontWeight: FontWeight.w500,
+            color: _ink,
+          ),
+        ),
+      ));
+      if (i < parts.length - 1) {
+        kids.add(const Icon(Icons.arrow_forward_rounded,
+            size: 18, color: _soft));
+      }
+    }
+    return Padding(
+      padding: const EdgeInsets.only(top: 16),
+      child: Wrap(
+        spacing: 6,
+        runSpacing: 8,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        children: kids,
+      ),
+    );
+  }
+}
+
+class _ChartView extends StatelessWidget {
+  final String data;
+  const _ChartView({required this.data});
+
+  @override
+  Widget build(BuildContext context) {
+    var ctitle = '';
+    var body = data;
+    final bar = data.indexOf('|');
+    if (bar >= 0) {
+      ctitle = data.substring(0, bar).trim();
+      body = data.substring(bar + 1);
+    }
+    final labels = <String>[];
+    final values = <double>[];
+    for (final item in body.split(';')) {
+      final kv = item.split('=');
+      if (kv.length != 2) continue;
+      final v = double.tryParse(kv[1].replaceAll(RegExp(r'[^0-9.]'), ''));
+      if (v == null) continue;
+      labels.add(kv[0].trim());
+      values.add(v);
+    }
+    if (values.length < 2) return const SizedBox.shrink();
+    var maxV = 0.0;
+    for (final v in values) {
+      if (v > maxV) maxV = v;
+    }
+    if (maxV <= 0) return const SizedBox.shrink();
+
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(top: 16),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: _panel,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: _line),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (ctitle.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: Text(
+                ctitle,
+                style: const TextStyle(
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w600,
+                  color: _ink,
+                ),
+              ),
+            ),
+          for (var i = 0; i < values.length; i++)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: Row(
+                children: [
+                  SizedBox(
+                    width: 84,
+                    child: Text(
+                      labels[i],
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontSize: 13, color: _body),
+                    ),
+                  ),
+                  Expanded(
+                    child: LayoutBuilder(builder: (context, box) {
+                      return Align(
+                        alignment: Alignment.centerLeft,
+                        child: Container(
+                          height: 14,
+                          width: box.maxWidth * (values[i] / maxV),
+                          decoration: BoxDecoration(
+                            color: _ink,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                        ),
+                      );
+                    }),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    values[i] == values[i].roundToDouble()
+                        ? values[i].toInt().toString()
+                        : values[i].toString(),
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: _ink,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+        ],
+      ),
     );
   }
 }
@@ -178,7 +337,7 @@ class _StepCard extends StatelessWidget {
                   Text(
                     detail,
                     style: const TextStyle(
-                      fontSize: 13,
+                      fontSize: 13.5,
                       height: 1.55,
                       color: _body,
                     ),
@@ -219,7 +378,7 @@ class _InfoCard extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: soft ? const Color(0xFFF6F6F6) : Colors.white,
+        color: soft ? _panel : Colors.white,
         border: Border.all(color: _line),
         borderRadius: BorderRadius.circular(14),
       ),
