@@ -110,6 +110,7 @@ class _VedraChatScreenState extends State<VedraChatScreen> {
   bool _speechReady = false;
   bool _typing = false;
   bool _isFirst = false;
+  VChatMessage? _fresh;
   String _query = '';
   String _subtitle = 'Aaj kya banana ya seekhna hai?';
 
@@ -163,6 +164,14 @@ class _VedraChatScreenState extends State<VedraChatScreen> {
           duration: const Duration(milliseconds: 250),
           curve: Curves.easeOut,
         );
+      }
+    });
+  }
+
+  void _tickScroll() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scroll.hasClients) {
+        _scroll.jumpTo(_scroll.position.maxScrollExtent);
       }
     });
   }
@@ -251,7 +260,6 @@ class _VedraChatScreenState extends State<VedraChatScreen> {
     _save();
     _scrollDown();
 
-    // TODO: yahan asli AI API call aayegi. Abhi demo jawab hai.
     String reply;
     try {
       reply = await askVedra([
@@ -263,12 +271,11 @@ class _VedraChatScreenState extends State<VedraChatScreen> {
       reply = 'Jawab nahi mil paaya.\n($e)';
     }
     if (!mounted) return;
+    final msg = VChatMessage(reply, false);
     setState(() {
       _typing = false;
-      s.messages.add(VChatMessage(
-        reply,
-        false,
-      ));
+      s.messages.add(msg);
+      _fresh = identical(s, _cur) ? msg : null;
       s.updatedAt = DateTime.now();
     });
     _save();
@@ -317,9 +324,9 @@ class _VedraChatScreenState extends State<VedraChatScreen> {
         if (x != null) _pending.add(VAttachment(x.name, x.path, 'image'));
       } else if (what == 'video') {
         final x = await _picker.pickVideo(source: ImageSource.gallery);
-                if (x != null) _pending.add(VAttachment(x.name, x.path, 'video'));
-                      } else {
-                              final f = await FilePicker.pickFile();
+        if (x != null) _pending.add(VAttachment(x.name, x.path, 'video'));
+      } else {
+        final f = await FilePicker.pickFile();
         if (f != null && f.path != null) {
           _pending.add(VAttachment(f.name, f.path!, 'file'));
         }
@@ -334,7 +341,7 @@ class _VedraChatScreenState extends State<VedraChatScreen> {
     showModalBottomSheet(
       context: context,
       builder: (ctx) {
-     Widget item(IconData icon, String label, String key) => ListTile(
+        Widget item(IconData icon, String label, String key) => ListTile(
               leading: Icon(icon),
               title: Text(label),
               onTap: () {
@@ -360,6 +367,7 @@ class _VedraChatScreenState extends State<VedraChatScreen> {
   void _newChat() {
     final empty = _sessions.where((s) => s.messages.isEmpty).toList();
     setState(() {
+      _fresh = null;
       _isFirst = true;
       if (empty.isNotEmpty) {
         _cur = empty.first;
@@ -415,8 +423,7 @@ class _VedraChatScreenState extends State<VedraChatScreen> {
               onPressed: () => Navigator.pop(ctx, false),
               child: const Text('Cancel')),
           TextButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              child: Text(yes)),
+              onPressed: () => Navigator.pop(ctx, true), child: Text(yes)),
         ],
       ),
     );
@@ -428,6 +435,7 @@ class _VedraChatScreenState extends State<VedraChatScreen> {
         'Delete chat?', 'Ye chat hamesha ke liye hat jayegi.', 'Delete');
     if (!ok) return;
     setState(() {
+      _fresh = null;
       _sessions.remove(s);
       if (s == _cur) _isFirst = true;
       if (s == _cur || _sessions.isEmpty) {
@@ -443,6 +451,7 @@ class _VedraChatScreenState extends State<VedraChatScreen> {
         'Saari chats hamesha ke liye hat jayengi.', 'Delete all');
     if (!ok) return;
     setState(() {
+      _fresh = null;
       _sessions.clear();
       _isFirst = true;
       _cur = VChatSession();
@@ -642,18 +651,18 @@ class _VedraChatScreenState extends State<VedraChatScreen> {
             Icon(Icons.auto_awesome, size: 44, color: cs.primary),
             const SizedBox(height: 16),
             Text(_isFirst ? 'Welcome, $first!' : '$_greeting, $first',
-                style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w700, color: _ink)),
+                style: const TextStyle(
+                    fontSize: 26, fontWeight: FontWeight.w700, color: _ink)),
             const SizedBox(height: 8),
             Text(_isFirst ? 'Vedra mein aapka swagat hai' : _subtitle),
             const SizedBox(height: 20),
-
           ],
         ),
       ),
     );
   }
 
-    Widget _bubble(VChatMessage m, ColorScheme cs) {
+  Widget _bubble(VChatMessage m, ColorScheme cs) {
     if (!m.isUser) {
       return Align(
         alignment: Alignment.centerLeft,
@@ -664,7 +673,12 @@ class _VedraChatScreenState extends State<VedraChatScreen> {
             children: [
               for (final a in m.attachments) _attachmentView(a),
               if (m.text.isNotEmpty)
-                VedraAnswer(text: m.text),
+                VedraAnswer(
+                  key: ObjectKey(m),
+                  text: m.text,
+                  animate: identical(m, _fresh),
+                  onTick: _tickScroll,
+                ),
             ],
           ),
         ),
@@ -750,7 +764,8 @@ class _VedraChatScreenState extends State<VedraChatScreen> {
                         child: InputChip(
                           label: SizedBox(
                             width: 110,
-                            child: Text(a.name, overflow: TextOverflow.ellipsis),
+                            child:
+                                Text(a.name, overflow: TextOverflow.ellipsis),
                           ),
                           onDeleted: () => setState(() => _pending.remove(a)),
                         ),
@@ -776,8 +791,9 @@ class _VedraChatScreenState extends State<VedraChatScreen> {
                       maxLines: 5,
                       textInputAction: TextInputAction.newline,
                       decoration: InputDecoration(
-                        hintText:
-                            _listening ? 'Sun raha hoon...' : 'Vedra se poochho',
+                        hintText: _listening
+                            ? 'Sun raha hoon...'
+                            : 'Vedra se poochho',
                         border: InputBorder.none,
                       ),
                     ),
@@ -814,7 +830,10 @@ class _VedraChatScreenState extends State<VedraChatScreen> {
       selected: s == _cur,
       onTap: () {
         Navigator.pop(context);
-        setState(() => _cur = s);
+        setState(() {
+          _cur = s;
+          _fresh = null;
+        });
         _scrollDown();
       },
       trailing: PopupMenuButton<String>(
@@ -857,7 +876,11 @@ class _VedraChatScreenState extends State<VedraChatScreen> {
           if (groups.containsKey(g)) ...[
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-              child: Text(g, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: _inkSoft)),
+              child: Text(g,
+                  style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: _inkSoft)),
             ),
             for (final s in groups[g]!) _chatTile(s),
           ],
